@@ -5,6 +5,7 @@
 ## - OP_TOKEN         - Access token for the given vault
 ## - OP_VAULT         - Vault id to the Peddle Automation Vault
 ## - OP_CONFIGURATION - Name of the secret (e.g., my-app-staging)
+## - GH_TOKEN         - GitHub Personal Access Token with `repo` permissions enabled
 ##
 name: Synchronize Secrets from 1Password → GitHub
 
