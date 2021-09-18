@@ -11,7 +11,8 @@ jobs:
       - name: Test something
         shell: bash
         run: |
-          echo "$SECRET"
+          echo "$SECRET" > test
+          cat test
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           SECRET: ${{ secrets.TEST }}
