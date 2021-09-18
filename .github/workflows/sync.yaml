@@ -75,9 +75,9 @@ jobs:
 
           KEY_ID=$(jq -r '.key_id' <<< $PUBLIC_KEY)
 
-          npm i --prefix $tmp tweetsodium
-
           tmp=$(mktemp -d)
+          
+          npm i --prefix $tmp tweetsodium
 
           cat > $tmp/encrypt.js <<- EOM
           const sodium = require('tweetsodium');
