@@ -1,4 +1,4 @@
-name: Checks the Synchronized Secret from 1Password → GitHub
+name: Test tool availability
 
 on:
   workflow_dispatch: {}
