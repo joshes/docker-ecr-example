@@ -68,6 +68,7 @@ jobs:
           curl \
             --verbose \
             -X PUT \
+            -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/$GITHUB_REPOSITORY/actions/secrets/TEST \
             -d '{"encrypted_value":"$DATA"}'
@@ -76,8 +77,10 @@ jobs:
           OP_TOKEN: ${{ secrets.OP_TOKEN }}
           OP_VAULT: ${{ secrets.OP_VAULT }}
           OP_CONFIGURATION: ${{ secrets.OP_CONFIGURATION }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Stop 1Password Connect API
+        if: always()
         shell: bash
         run: docker-compose stop -f $GITHUB_WORKSPACE/.op/docker-compose.yaml
 
