@@ -50,20 +50,49 @@ jobs:
         run: |
           timeout 60 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8080/health)" != "200" ]]; do sleep 5; done' || false
 
-      - name: Sync 1Password Configuration to .env.local
+      - name: Sync 1Password Configuration → GitHub
         shell: bash
         run: |
-          UUID=$(curl -s \
-            -X GET \
+          UUID=$(curl \
+            -s \
             -H "Authorization: Bearer $OP_TOKEN" \
             -H "Accepts: application/json" \
             "http://localhost:8080/v1/vaults/$OP_VAULT/items" | jq -r ".[] | select(.title==\"$OP_CONFIGURATION\") | .id")
 
-          DATA=$(curl -s \
-            -X GET \
+          DATA=$(curl \
+            -s \
             -H "Authorization: Bearer $OP_TOKEN" \
             -H "Accepts: application/json" \
-            "http://localhost:8080/v1/vaults/$OP_VAULT/items/$UUID" | jq -r '.fields[0].value' | base64)
+            "http://localhost:8080/v1/vaults/$OP_VAULT/items/$UUID" | jq -r '.fields[0].value')
+
+          PUBLIC_KEY=$(curl \
+            -s \
+            -H "Authorization: token $GH_TOKEN" \
+            -H "Accepts: application/vnd.github.v3+json" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/actions/secrets/public-key)
+
+          KEY=$(jq -r '.key' <<< $PUBLIC_KEY)
+
+          KEY_ID=$(jq -r '.key_id' <<< $PUBLIC_KEY)
+
+          npm i -g tweetsodium
+
+          tmp=$(mktemp -d)
+
+          cat > $tmp/encrypt.js <<- EOM
+          const sodium = require('tweetsodium');
+          const key = process.argv[2];   // key
+          const value = process.argv[3]; // data
+          const messageBytes = Buffer.from(value);
+          const keyBytes = Buffer.from(key, 'base64');
+          const encryptedBytes = sodium.seal(messageBytes, keyBytes);
+          const encrypted = Buffer.from(encryptedBytes).toString('base64');
+          console.log(encrypted);
+          EOM
+
+          ENCRYPTED_DATA=$(node $tmp/encrypt.js "$KEY" "$DATA")
+          
+          rm -rf $tmp
 
           curl \
             --verbose \
@@ -71,7 +100,7 @@ jobs:
             -H "Authorization: token $GH_TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/$GITHUB_REPOSITORY/actions/secrets/TEST \
-            -d '{"encrypted_value":"$DATA"}'
+            -d "{\"encrypted_value\":\"$ENCRYPTED_DATA\", \"key_id\": \"$KEY_ID\"}"
 
         env:
           OP_TOKEN: ${{ secrets.OP_TOKEN }}
@@ -83,4 +112,3 @@ jobs:
         if: always()
         shell: bash
         run: docker-compose stop -f $GITHUB_WORKSPACE/.op/docker-compose.yaml
-
