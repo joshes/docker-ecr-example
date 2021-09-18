@@ -11,4 +11,8 @@ jobs:
       - name: Test something
         shell: bash
         run: |
-          echo -n "Hello" | base64
+          curl \
+            --verbose \
+            -X GET \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/$GITHUB_REPOSITORY/actions/secrets/OP_CONFIGURATION
