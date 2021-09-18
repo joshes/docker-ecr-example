@@ -1,0 +1,14 @@
+name: Checks the Synchronized Secret from 1Password → GitHub
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test something
+        shell: bash
+        run: |
+          echo -n "Hello" | base64

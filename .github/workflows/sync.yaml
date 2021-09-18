@@ -1,0 +1,76 @@
+##
+## Action requires the following GitHub Secrets to be set:
+##
+## - OP_CREDENTIALS   - Json credentials.json file from 1password
+## - OP_TOKEN         - Access token for the given vault
+## - OP_VAULT         - Vault id to the Peddle Automation Vault
+## - OP_CONFIGURATION - Name of the secret (e.g., my-app-staging)
+##
+name: Synchronize Secrets from 1Password → GitHub
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Start 1Password Connect API
+        shell: bash
+        run: |
+          mkdir -p .op/data && cd .op
+          echo $OP_CREDENTIALS > 1password-credentials.json
+          cat > docker-compose.yaml <<- EOM
+          version: "3.4"
+          services:
+            op-connect-api:
+              image: 1password/connect-api:1.3.1
+              ports:
+                - "8080:8080"
+              volumes:
+                - data:/home/opuser/.op/data
+                - ./1password-credentials.json:/home/opuser/.op/1password-credentials.json
+            op-connect-sync:
+              image: 1password/connect-sync:1.3.1
+              ports:
+                - "8081:8080"
+              volumes:
+                - data:/home/opuser/.op/data
+                - ./1password-credentials.json:/home/opuser/.op/1password-credentials.json
+          volumes:
+            data:
+          EOM
+          docker-compose up -d
+        env:
+          OP_CREDENTIALS: ${{ secrets.OP_CREDENTIALS }}
+
+      - name: Wait for 1Password Connect API
+        shell: bash
+        run: |
+          timeout 60 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8080/health)" != "200" ]]; do sleep 5; done' || false
+
+      - name: Sync 1Password Configuration to .env.local
+        shell: bash
+        run: |
+          UUID=$(curl -s \
+            -X GET \
+            -H "Authorization: Bearer $OP_TOKEN" \
+            -H "Accepts: application/json" \
+            "http://localhost:8080/v1/vaults/$OP_VAULT/items" | jq -r ".[] | select(.title==\"$OP_CONFIGURATION\") | .id")
+
+          DATA=$(curl -s \
+            -X GET \
+            -H "Authorization: Bearer $OP_TOKEN" \
+            -H "Accepts: application/json" \
+            "http://localhost:8080/v1/vaults/$OP_VAULT/items/$UUID" | jq -r '.fields[0].value' | base64)
+
+        env:
+          OP_TOKEN: ${{ secrets.OP_TOKEN }}
+          OP_VAULT: ${{ secrets.OP_VAULT }}
+          OP_CONFIGURATION: ${{ secrets.OP_CONFIGURATION }}
+
+      - name: Stop 1Password Connect API
+        shell: bash
+        run: docker-compose stop -f $GITHUB_WORKSPACE/.op/docker-compose.yaml
+
