@@ -11,6 +11,9 @@ name: Synchronize Secrets from 1Password → GitHub
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - main
 
 jobs:
   test:
@@ -113,3 +116,11 @@ jobs:
         if: always()
         shell: bash
         run: docker-compose stop -f $GITHUB_WORKSPACE/.op/docker-compose.yaml
+
+      - name: Print a dynamically set secret
+        shell: bash
+        run: |
+          echo "$TEST" > .env
+          cat .env | sed "s/\"/'/g"
+        env:
+          TEST: "${{ secrets.TEST }}"
