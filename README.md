@@ -2,6 +2,12 @@
 
 Example CI flow for building and pushing docker images from GitHub actions.
 
+| Branch / Tag     | Docker Tag |
+|------------------|------------|
+| develop          | latest-dev |
+| main             | latest     |
+| tag (e.g., 1.0)  | 1.0        |
+
 ## Bootstrap IAM
 
 ```sh
