@@ -54,7 +54,11 @@ aws iam list-attached-role-policies --role-name GitHubECRPublisherRole
 aws iam create-access-key --user-name github
 ```
 
-## Next steps
+### Finalize the configuration.
 
 - Configure the GitHub Action Secrets in your repo by setting `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables.
 - Configure the defaults in `.github/actions/ci/action.yml` for your environment.
+
+## Future work
+
+- Make this work for monorepos.
