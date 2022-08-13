@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - id: tag
+        run: echo ::set-output name=TAG::${GITHUB_REF/refs\/tags\//}
+      - uses: ./.github/actions/ci
+        with:
+          tag: ${{ steps.tag.outputs.TAG }}
+          repository: hello
+          aws-access-key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

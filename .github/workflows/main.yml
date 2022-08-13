@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - id: tag
+        run: echo "::set-output name=TAG::$(git rev-parse --short HEAD)"
+      - uses: ./.github/actions/ci
+        with:
+          tag: latest
+          repository: hello
+          aws-access-key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
