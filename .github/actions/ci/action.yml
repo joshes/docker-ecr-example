@@ -1,0 +1,44 @@
+name: 'develop'
+description: ''
+inputs:
+  aws-access-key: 
+    description: 'AWS Access Key'
+    required: true
+  aws-secret-key:
+    description: 'AWS Secret Key'
+    required: true
+  aws-region:
+    description: 'AWS Region'
+    required: true
+    default: 'us-east-1'
+  role-arn:
+    description: 'AWS IAM Role ARN'
+    required: true
+    default: 'arn:aws:iam::489099442433:role/GitHubECRActionRole'
+  registry:
+    description: 'ECR Registry'
+    required: true
+    default: '489099442433.dkr.ecr.us-east-1.amazonaws.com'
+  repository:
+    description: 'ECR Repository'
+    required: true
+  tag:
+    description: 'Tag'
+    required: true
+runs:
+  using: "composite"
+  steps: 
+    - name: Build, tag, and push docker image to Amazon ECR
+      env:
+        AWS_DEFAULT_REGION: ${{ inputs.aws-region }}
+      shell: bash
+      run: |
+        export AWS_ACCESS_KEY_ID=${{ inputs.aws-access-key }}
+        export AWS_SECRET_ACCESS_KEY=${{ inputs.aws-secret-key }}
+        creds=$(aws sts assume-role --role-arn "${{ inputs.role-arn }}" --role-session-name "github-action")
+        export AWS_ACCESS_KEY_ID=$(echo $creds | jq -r .Credentials.AccessKeyId)
+        export AWS_SECRET_ACCESS_KEY=$(echo $creds | jq -r .Credentials.SecretAccessKey)
+        export AWS_SESSION_TOKEN=$(echo $creds | jq -r .Credentials.SessionToken)
+        aws ecr get-login-password | docker login --username AWS --password-stdin ${{ inputs.registry }}
+        docker build -t ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.tag }} .
+        docker push ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.tag }}
