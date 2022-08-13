@@ -13,30 +13,46 @@ Example CI flow for building and pushing docker images from GitHub actions.
 ```sh
 AWS_ACCOUNT="XXXXXXXXXX"
 aws iam create-user --user-name github
-cat << EOF > GitHubECRPublisherPolicy.json
+cat << EOF > GithubECRActionPolicy.json
 {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "AllowPush",
+            "Sid": "GetAuthorizationToken",
             "Effect": "Allow",
             "Action": [
-                "ecr:CompleteLayerUpload",
-                "ecr:GetAuthorizationToken",
-                "ecr:UploadLayerPart",
-                "ecr:InitiateLayerUpload",
-                "ecr:BatchCheckLayerAvailability",
-                "ecr:PutImage",
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowAssume",
+            "Effect": "Allow",
+            "Action": [
                 "sts:AssumeRole",
                 "sts:TagSession"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "AllowPushPull",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:CompleteLayerUpload",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:InitiateLayerUpload",
+                "ecr:PutImage",
+                "ecr:UploadLayerPart"
             ],
             "Resource": "*"
         }
     ]
 }
 EOF
-aws iam create-policy --policy-name GitHubECRPublisherPolicy --policy-document file://GitHubECRPublisherPolicy.json
-aws iam attach-user-policy --user-name github --policy-arn "arn:aws:iam::${AWS_ACCOUNT}:policy/GitHubECRPublisherPolicy"
+aws iam create-policy --policy-name GithubECRActionPolicy --policy-document file://GithubECRActionPolicy.json
+aws iam attach-user-policy --user-name github --policy-arn "arn:aws:iam::${AWS_ACCOUNT}:policy/GithubECRActionPolicy"
 aws iam list-attached-user-policies --user-name github
 cat << EOF > GitHubTrustPolicy.json
 {
@@ -48,9 +64,9 @@ cat << EOF > GitHubTrustPolicy.json
     }
 }
 EOF
-aws iam create-role --role-name GitHubECRPublisherRole --assume-role-policy-document file://GitHubTrustPolicy.json
-aws iam attach-role-policy --role-name GitHubECRPublisherRole --policy-arn "arn:aws:iam::${AWS_ACCOUNT}:policy/GitHubECRPublisherPolicy"
-aws iam list-attached-role-policies --role-name GitHubECRPublisherRole
+aws iam create-role --role-name GithubECRActionRole --assume-role-policy-document file://GitHubTrustPolicy.json
+aws iam attach-role-policy --role-name GithubECRActionRole --policy-arn "arn:aws:iam::${AWS_ACCOUNT}:policy/GithubECRActionPolicy"
+aws iam list-attached-role-policies --role-name GithubECRActionRole
 aws iam create-access-key --user-name github
 ```
 
